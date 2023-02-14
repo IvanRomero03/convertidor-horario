@@ -2,11 +2,28 @@ import { type NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
 
-import { api } from "../utils/api";
+import { useState } from "react";
+import axios from "axios";
 
 const Home: NextPage = () => {
-  const hello = api.example.hello.useQuery({ text: "from tRPC" });
-
+  const [matricula, setMatricula] = useState("");
+  const handleSubmit = async () => {
+    const dataResponse = await axios.get(
+      "https://alsvdes01.itesm.mx:8282/tmty/alumnos/" +
+        matricula +
+        "/horario/tec21?cveTerm=" +
+        "202311",
+      {
+        headers: {
+          Referer: "https://mitec.itesm.mx/",
+          Authorization: "Basic c1NJU1RFTUEtUE9SVEFMOmMwNTExQnA0Nlo=",
+          "Content-Type": "application/vnd.api+json",
+          Accept: "application/vnd.api+json",
+        },
+      }
+    );
+    console.log(dataResponse?.data?.data);
+  };
   return (
     <>
       <Head>
@@ -25,8 +42,17 @@ const Home: NextPage = () => {
                 Introduce tu matrícula
               </p>
               <div className="flex items-center justify-center">
-                <input type="text" className="m-5 h-10 w-64" />
-                <button className="m-5 h-10 w-20 rounded bg-blue-500 py-2 px-4 font-bold text-white hover:bg-blue-700">
+                <input
+                  type="text"
+                  className="m-5 h-10 w-64"
+                  onChange={(e) => {
+                    setMatricula(e.target.value);
+                  }}
+                />
+                <button
+                  className="m-5 h-10 w-20 rounded bg-blue-500 py-2 px-4 font-bold text-white hover:bg-blue-700"
+                  onClick={handleSubmit}
+                >
                   Buscar
                 </button>
               </div>
