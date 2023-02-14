@@ -1,9 +1,12 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 import { VCALENDAR, VEVENT } from "ics-js";
 
-export function icsTransformer(data: any) {
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+export function icsTransformer(data) {
   // Create calendar
   const cal = new VCALENDAR();
-
   // Add properties
   cal.addProp("VERSION", 2);
   cal.addProp("PRODID", "RoBorregos");
