@@ -1,7 +1,6 @@
-import pkg from "ics-js";
-const { VCALENDAR, VEVENT } = pkg;
+import { VCALENDAR, VEVENT } from "ics-js";
 
-function icsTransformer(data) {
+export function icsTransformer(data) {
   // Create calendar
   const cal = new VCALENDAR();
 
@@ -57,5 +56,6 @@ function icsTransformer(data) {
   const blob = cal.toString();
 
   //saveAs(blob, 'calendar.ics');
+  return blob;
   console.log(blob);
 }

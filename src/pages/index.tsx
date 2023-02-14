@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { useState } from "react";
 import axios from "axios";
+import { icsTransformer } from "../utils/icsTransformer";
 
 const Home: NextPage = () => {
   const [matricula, setMatricula] = useState("");
@@ -22,7 +23,8 @@ const Home: NextPage = () => {
         },
       }
     );
-    console.log(dataResponse?.data?.data);
+    const icsText = icsTransformer(dataResponse?.data?.data);
+    window.open("data:text/calendar;charset=utf8," + escape(icsText));
   };
   return (
     <>
