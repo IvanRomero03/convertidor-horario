@@ -1,6 +1,6 @@
 import { VCALENDAR, VEVENT } from "ics-js";
 
-export function icsTransformer(data) {
+export function icsTransformer(data: any) {
   // Create calendar
   const cal = new VCALENDAR();
 
