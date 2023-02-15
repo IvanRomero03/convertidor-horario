@@ -32,6 +32,7 @@ const Home: NextPage = () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const icsText = String(icsTransformer(dataResponse?.data?.data));
       window.open("data:text/calendar;charset=utf8," + escape(icsText));
+      alert("Se descargó el horario, si no se descargó, activa los popups");
     } catch (error) {
       alert("No se encontró el horario");
     }
