@@ -16,7 +16,7 @@ const Home: NextPage = () => {
         "https://alsvdes01.itesm.mx:8282/tmty/alumnos/" +
           matricula +
           "/horario/tec21?cveTerm=" +
-          "202311",
+          "202313",
         {
           headers: {
             Authorization: "Basic c1NJU1RFTUEtUE9SVEFMOmMwNTExQnA0Nlo=",
