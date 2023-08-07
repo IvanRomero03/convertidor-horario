@@ -8,6 +8,7 @@ import { icsTransformer } from "../utils/icsTransformer";
 
 const Home: NextPage = () => {
   const [matricula, setMatricula] = useState("");
+  const [jsonHorario, setJsonHorario] = useState("");
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   const handleSubmit = async () => {
@@ -37,6 +38,30 @@ const Home: NextPage = () => {
       alert("No se encontró el horario");
     }
   };
+
+  const handleSubmitJson = async () => {
+    try {
+      const calendarData = JSON.parse(jsonHorario);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const icsText = String(icsTransformer(calendarData));
+
+      const fileName = "horario.ics";
+      const blob = new Blob([icsText], {type: 'text/calendar'});
+
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = fileName;
+      link.click();
+
+      window.URL.revokeObjectURL(link.href);
+
+      alert("Se descargó el horario, si no se descargó, activa los popups");
+    } catch (error) {
+      alert("Hubo un error al generar el horario.");
+    }
+  };
+
   return (
     <>
       <Head>
@@ -50,7 +75,7 @@ const Home: NextPage = () => {
             <h1 className="m-12 animate-none text-4xl font-bold text-gray-600">
               Convertidor Horario
             </h1>
-            <p className="m-5 animate-none text-2xl font-bold text-gray-600">
+            {/* <p className="m-5 animate-none text-2xl font-bold text-gray-600">
               Introduce tu matrícula
             </p>
             <div className="flex items-center justify-center">
@@ -67,6 +92,25 @@ const Home: NextPage = () => {
                 onClick={handleSubmit}
               >
                 Buscar
+              </button>
+            </div> */}
+            <p className="m-5 animate-none text-2xl font-bold text-gray-600">
+              Introduce el JSON de tu horario
+            </p>
+            <div className="flex items-center justify-center">
+              <input
+                type="text"
+                className="m-5 h-10 w-64"
+                onChange={(e) => {
+                  setJsonHorario(e.target.value);
+                }}
+              />
+              <button
+                className="m-5 h-10 w-20 rounded bg-blue-500 py-2 px-4 font-bold text-white hover:bg-blue-700"
+                // eslint-disable-next-line @typescript-eslint/no-misused-promises
+                onClick={handleSubmitJson}
+              >
+                Crear
               </button>
             </div>
           </div>

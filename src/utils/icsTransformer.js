@@ -5,79 +5,139 @@ import { VCALENDAR, VEVENT } from "ics-js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 export function icsTransformer(data) {
-    // Create calendar
-    const cal = new VCALENDAR();
+  // Create calendar
+  const cal = new VCALENDAR();
 
-    // Add properties
-    cal.addProp('VERSION', 2)
-    cal.addProp('PRODID', 'RoBorregos');
-    cal.addProp('CALSCALE', 'GREGORIAN');
+  const classData = data.data; // Contains data about dates.
 
-    //cal.addProp('TZID', 'America/Mexico_City');
-    //cal.addProp('TZURL', 'http://tzurl.org/zoneinfo-outlook/America/Mexico_City');
-    //cal.addProp('X-LIC-LOCATION', 'America/Mexico_City');
+  const includedData = data.included; // Contains additional info (teacher, name, etc.)
 
-    let dateCreated = new Date(Date.now());
+  // Add properties
+  cal.addProp("VERSION", 2);
+  cal.addProp("PRODID", "RoBorregos");
+  cal.addProp("CALSCALE", "GREGORIAN");
 
-    // Loop data from json and add events
-    let counter = 0;
-    for (let eventData of data) {
+  //cal.addProp('TZID', 'America/Mexico_City');
+  //cal.addProp('TZURL', 'http://tzurl.org/zoneinfo-outlook/America/Mexico_City');
+  //cal.addProp('X-LIC-LOCATION', 'America/Mexico_City');
+
+  let dateCreated = new Date(Date.now());
+  let counter = 0;
+
+  for (let course of classData) {
+    // Get Teacher name and course name
+    const teacherId = course.relationships["profesor-titular"]?.data?.id;
+    const courseId = course.relationships["materia-impartida"]?.data?.id;
+
+    const teacherName = findTeacher(teacherId, includedData);
+    let courseName = findCourse(courseId, includedData);
+
+    let horarios = course.attributes.horario; // Classes of 3 blocks will have 3 entries in this array.
+
+    // @ts-ignore
+    const processed = []; // Use to discard classes (if the start and end dates are duplicated)
+
+    // Add each specific block as a separate event
+    for (let block of horarios) {
+      const times = [
+        block.fechaInicioClase,
+        block.fechaFinClase,
+        block.horaInicioClase,
+        block.horaFinClase,
+      ];
+      const timesStr = times.join();
+
+      // @ts-ignore
+      if (processed.includes(timesStr)) continue;
+      processed.push(timesStr);
+
+      // If class has no schedule, then it may be asynchronous (skip event).
+      if ("dias" in block) {
         const event = new VEVENT();
-
-        let sDate = eventData.attributes.START_DATE.substring(0, 10) + " " + eventData.attributes.BEGIN_TIME.substring(0, 2) + ":" + eventData.attributes.BEGIN_TIME.substring(2) + ":00";
+        let sDate =
+          block.fechaInicioClase + " " + block.horaInicioClase + ":00";
         const start = new Date(sDate);
-
-        let fDate = eventData.attributes.START_DATE.substring(0, 10) + " " + eventData.attributes.END_TIME.substring(0, 2) + ":" + eventData.attributes.END_TIME.substring(2) + ":00";
+        let fDate = block.fechaInicioClase + " " + block.horaFinClase + ":00";
         const finishClass = new Date(fDate);
-        const end = new Date(eventData.attributes.END_DATE);
+        const end = new Date(
+          block.fechaFinClase + " " + block.horaFinClase + ":00"
+        );
 
-        event.addProp('DTSTAMP', dateCreated);
-        event.addProp('UID', 'rbrgs.com' + counter);
+        event.addProp("DTSTAMP", dateCreated);
+        event.addProp("UID", "rbrgs.com" + counter);
         counter++;
-        event.addProp('DTSTART', start);
+        event.addProp("DTSTART", start);
 
         // RRULE:FREQ=WEEKLY;BYDAY=MO,WE,TH;UNTIL=20230217T180000Z
         let rrule = "FREQ=WEEKLY;BYDAY=";
 
-        if (eventData.attributes.SUN_DAY != null)
-            rrule += "SU,";
-        if (eventData.attributes.MON_DAY != null)
-            rrule += "MO,";
-        if (eventData.attributes.TUE_DAY != null)
-            rrule += "TU,";
-        if (eventData.attributes.WED_DAY != null)
-            rrule += "WE,";
-        if (eventData.attributes.THU_DAY != null)
-            rrule += "TH,";
-        if (eventData.attributes.FRI_DAY != null)
-            rrule += "FR,";
-        if (eventData.attributes.SAT_DAY != null)
-            rrule += "SA,";
+        const dates = block.dias;
+
+        if (dates.includes("S")) rrule += "SU,";
+        if (dates.includes("M")) rrule += "MO,";
+        if (dates.includes("T")) rrule += "TU,";
+        if (dates.includes("W")) rrule += "WE,";
+        if (dates.includes("R")) rrule += "TH,";
+        if (dates.includes("F")) rrule += "FR,";
+        if (dates.includes("Sa")) rrule += "SA,";
 
         rrule = rrule.slice(0, -1);
 
-        let month = "" + (end.getMonth() + 1);
-        if (month.length == 1)
-            month = "0" + month;
+        rrule += ";UNTIL=" + formatDateToISO8601(end);
 
-        let date = "" + (end.getDate() + 1);
-        if (date.length == 1)
-            date = "0" + date;
-
-        rrule += ";UNTIL=" + end.getFullYear() + (month) + (date) + "T000000Z";
-
-        event.addProp('RRULE', rrule);
-        event.addProp('DTEND', finishClass);
-
-        event.addProp("SUMMARY", eventData.attributes.TITLE);
-        event.addProp("DESCRIPTION", `Salon: ${eventData.attributes.BLDG_CODE}${eventData.attributes.ROOM_CODE}. Profesor: ${eventData.attributes.NOMBRE_PROFESOR}.`);
+        event.addProp("RRULE", rrule);
+        event.addProp("DTEND", finishClass);
+        if (!courseName || courseName == "") {
+          console.log("Error finding course name.");
+          courseName = "-";
+        }
+        event.addProp("SUMMARY", courseName);
+        event.addProp(
+          "DESCRIPTION",
+          `Salon: ${block.claveEdificio}${block.claveSalon}. Profesor: ${teacherName}. Grupo: ${block.grupo}. ID: ${courseId}.`
+        );
 
         cal.addComponent(event);
+      }
     }
+  }
 
-    const blob = cal.toString();
+  const blob = cal.toString();
+  console.log(blob);
+  return blob;
+}
 
-    //saveAs(blob, 'calendar.ics');
-    return blob;
-    console.log(blob);
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+function findTeacher(teacherId, includedData) {
+  for (let teacher of includedData) {
+    if (teacher.id == teacherId) {
+      return teacher.attributes.nombreCompleto;
+    }
+  }
+  return "";
+}
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+function findCourse(courseId, includedData) {
+  for (let course of includedData) {
+    if (course.id == courseId) {
+      return course.attributes.descripcionMateria;
+    }
+  }
+  return "";
+}
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+function formatDateToISO8601(date) {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0"); // Months are zero-based
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const hours = String(date.getUTCHours()).padStart(2, "0");
+  const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+  const seconds = String(date.getUTCSeconds()).padStart(2, "0");
+
+  return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
 }
